@@ -39,7 +39,13 @@ function runScraper(website, query) {
   return new Promise((resolve, reject) => {
     const child = spawn(executable, [path.join(root, "api_scrape.py"), website, query], {
       cwd: root,
-      env: { ...process.env, HEADLESS: "true", REPORT_DIR: reportDir },
+      env: {
+        ...process.env,
+        HEADLESS: "true",
+        REPORT_DIR: reportDir,
+        PYTHONIOENCODING: "utf-8",
+        PYTHONUTF8: "1",
+      },
       windowsHide: true,
     });
     let stdout = "";

@@ -13,6 +13,14 @@ from product_extractor import extract_products
 from search_service import page_needs_manual_attention, search_website
 
 
+# Windows consoles commonly default to cp1252, which cannot encode symbols such
+# as the Indian rupee. The API contract is UTF-8 JSON on every platform.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 def run(website_input: str, query: str) -> dict:
     website = normalise_website(website_input)
     query = query.strip()
