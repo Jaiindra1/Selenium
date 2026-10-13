@@ -10,6 +10,7 @@ from config import MAX_PRODUCTS
 from main import normalise_website
 from pdf_report import generate_pdf_report
 from product_extractor import extract_products
+from product_filter import filter_products
 from search_service import page_needs_manual_attention, search_website
 
 
@@ -36,7 +37,8 @@ def run(website_input: str, query: str) -> dict:
                 raise RuntimeError(
                     "The store requested a CAPTCHA, login, or verification step that cannot be completed in headless mode."
                 )
-            products = extract_products(driver.page_source, driver.current_url, MAX_PRODUCTS)
+            extracted_products = extract_products(driver.page_source, driver.current_url, MAX_PRODUCTS)
+            products = filter_products(extracted_products, query)
             report_path = generate_pdf_report(products, query, website)
             return {
                 "website": website,

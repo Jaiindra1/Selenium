@@ -39,15 +39,15 @@ If PowerShell blocks virtual-environment activation, run Python through the laun
 py -m pip install -r requirements.txt
 ```
 
-## Development mode
+## Run each part separately
 
-Development mode uses two PowerShell terminals. Vite serves the React frontend with hot reload, and Express runs the API separately.
+Use a separate PowerShell terminal for each part.
 
 ### Terminal 1: Node.js backend
 
 ```powershell
-cd C:\Users\mi423\Downloads\ecommerce_scraper_project
-npm run dev -w server
+cd C:\Users\mi423\Downloads\ecommerce_scraper_project\server
+npm run dev
 ```
 
 The backend runs at:
@@ -65,8 +65,8 @@ http://localhost:3000/api/health
 ### Terminal 2: React frontend
 
 ```powershell
-cd C:\Users\mi423\Downloads\ecommerce_scraper_project
-npm run dev -w client
+cd C:\Users\mi423\Downloads\ecommerce_scraper_project\client
+npm run dev
 ```
 
 Open the Vite URL printed in the terminal, normally:
@@ -77,13 +77,17 @@ http://localhost:5173
 
 Vite forwards `/api` requests to the Node.js backend on port `3000`.
 
-### Start both with one command
+### Terminal 3: Standalone Python scraper (optional)
 
-Instead of using two terminals, run:
+`main.py` is an interactive standalone scraper, not a web server. It is optional and is not required while using the dashboard.
 
 ```powershell
-npm run dev
+cd C:\Users\mi423\Downloads\ecommerce_scraper_project
+.\.venv\Scripts\Activate.ps1
+python main.py
 ```
+
+The web backend starts `api_scrape.py` itself whenever a dashboard user searches for a product.
 
 ## Production mode
 
@@ -107,7 +111,7 @@ http://localhost:3000
 
 In production mode, Express serves the compiled React files from `client/dist` and handles all `/api` requests.
 
-## Run the Python command-line scraper
+## Run only the Python command-line scraper
 
 The original interactive Python program can run independently of the web application:
 

@@ -7,6 +7,7 @@ from browser_manager import create_driver
 from config import MAX_PRODUCTS
 from pdf_report import generate_pdf_report
 from product_extractor import extract_products
+from product_filter import filter_products
 from search_service import page_needs_manual_attention, search_website
 
 
@@ -71,7 +72,9 @@ def main() -> None:
 
         # Selenium returns the rendered DOM, including many JavaScript-rendered elements.
         rendered_html = driver.page_source
-        products = extract_products(rendered_html, driver.current_url, MAX_PRODUCTS)
+        extracted_products = extract_products(rendered_html, driver.current_url, MAX_PRODUCTS)
+        products = filter_products(extracted_products, query)
+        print(f"Filtered {len(extracted_products)} extracted items to {len(products)} relevant products.")
 
         # Print the list in the terminal before creating the PDF file.
         print_products(products)

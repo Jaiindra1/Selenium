@@ -5,5 +5,7 @@ reports/
 node_modules/
 client/dist/
 data/
+*.db-shm
+*.db-wal
 .env
 .env.*

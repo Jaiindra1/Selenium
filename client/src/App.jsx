@@ -1,110 +1,71 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Clock3, Download, ExternalLink, Search, Sparkles, Store, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, Check, ChevronRight, ExternalLink, Globe2, LayoutDashboard, LogOut, Menu, Plus, Search, ShieldCheck, ShoppingBag, Sparkles, Store, Trash2, UserPlus, Users, X } from "lucide-react";
 
-const examples = [
-  ["amazon.in", "Sony WH-1000XM5"],
-  ["flipkart.com", "Google Pixel 9"],
-  ["ebay.com", "Mechanical keyboard"],
-];
-
-function hostname(value) {
-  try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return value; }
+async function request(path, options = {}) {
+  const token = localStorage.getItem("dealsense_token");
+  const response = await fetch(`/api${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } });
+  const data = response.status === 204 ? null : await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error || "Something went wrong");
+  return data;
 }
 
-function App() {
-  const [website, setWebsite] = useState("");
-  const [query, setQuery] = useState("");
-  const [history, setHistory] = useState([]);
-  const [active, setActive] = useState(null);
-  const [loading, setLoading] = useState(false);
+function Auth({ onAuth }) {
+  const [mode, setMode] = useState("login");
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
-
-  const completed = useMemo(() => history.filter((item) => item.status === "completed").length, [history]);
-
-  async function loadHistory() {
-    const response = await fetch("/api/scrapes");
-    if (response.ok) setHistory(await response.json());
-  }
-
-  useEffect(() => { loadHistory().catch(() => setError("Could not load search history.")); }, []);
-
-  async function openScrape(id) {
-    setError("");
-    const response = await fetch(`/api/scrapes/${id}`);
-    const data = await response.json();
-    if (!response.ok) return setError(data.error || "Could not load this search.");
-    setActive(data);
-  }
-
+  const [loading, setLoading] = useState(false);
   async function submit(event) {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    setActive(null);
-    try {
-      const response = await fetch("/api/scrapes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ website, query }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "The search could not be completed.");
-      await loadHistory();
-      await openScrape(data.id);
-    } catch (err) {
-      setError(err.message);
-      await loadHistory();
-    } finally {
-      setLoading(false);
-    }
+    event.preventDefault(); setLoading(true); setError("");
+    try { const data = await request(`/auth/${mode}`, { method: "POST", body: JSON.stringify(form) }); localStorage.setItem("dealsense_token", data.token); onAuth(data.user); }
+    catch (err) { setError(err.message); } finally { setLoading(false); }
   }
-
-  function useExample([store, term]) { setWebsite(store); setQuery(term); }
-
-  return <div className="app-shell">
-    <header className="nav">
-      <a className="brand" href="#top" aria-label="DealScope home"><span className="brand-mark"><Sparkles size={18}/></span>DealScope</a>
-      <div className="nav-status"><span></span> Research workspace</div>
-    </header>
-
-    <main id="top">
-      <section className="hero">
-        <div className="eyebrow">ECOMMERCE INTELLIGENCE</div>
-        <h1>Find the signal<br/>in a sea of <em>deals.</em></h1>
-        <p>Search a store, collect structured product details, and keep every finding in one calm workspace.</p>
-
-        <form className="search-panel" onSubmit={submit}>
-          <label><span>Store website</span><div className="input-wrap"><Store size={19}/><input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="amazon.in" required /></div></label>
-          <label><span>What are you looking for?</span><div className="input-wrap"><Search size={19}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Noise cancelling headphones" required /></div></label>
-          <button type="submit" disabled={loading}>{loading ? <><span className="spinner"/>Researching…</> : <>Start research <ArrowUpRight size={19}/></>}</button>
-        </form>
-
-        <div className="examples"><span>Try an example</span>{examples.map((item) => <button key={item.join()} onClick={() => useExample(item)}>{item[1]}</button>)}</div>
-        {error && <div className="error" role="alert">{error}<button onClick={() => setError("")} aria-label="Dismiss"><X size={16}/></button></div>}
-      </section>
-
-      <section className="workspace">
-        <div className="section-head"><div><div className="eyebrow">YOUR RESEARCH</div><h2>Recent searches</h2></div><div className="metric"><strong>{completed}</strong><span>completed</span></div></div>
-        {history.length === 0 ? <div className="empty"><Search size={28}/><h3>Your research starts here</h3><p>Run your first product search and the results will be saved in this workspace.</p></div> :
-          <div className="history-grid">{history.map((item) => <button className="history-card" key={item.id} onClick={() => openScrape(item.id)}>
-            <div className="history-icon">{hostname(item.website).charAt(0).toUpperCase()}</div>
-            <div className="history-copy"><strong>{item.query}</strong><span>{hostname(item.website)}</span><small><Clock3 size={13}/>{new Date(item.createdAt).toLocaleString()}</small></div>
-            <div className={`status ${item.status}`}>{item.status === "completed" ? `${item.productCount} items` : item.status}</div>
-          </button>)}</div>}
-      </section>
-
-      {active && <section className="results">
-        <div className="section-head"><div><div className="eyebrow">RESULTS FROM {hostname(active.website).toUpperCase()}</div><h2>{active.query}</h2></div>{active.reportUrl && <a className="download" href={active.reportUrl}><Download size={17}/> Download PDF</a>}</div>
-        {active.products.length === 0 ? <div className="empty"><h3>No products were extracted</h3><p>The store may require verification or a site-specific selector.</p></div> :
-        <div className="product-grid">{active.products.map((product, index) => <article className="product-card" key={`${product.product_url}-${index}`}>
-          <div className="product-image">{product.image_url ? <img src={product.image_url} alt="" loading="lazy"/> : <Store size={28}/>}</div>
-          <div className="product-body"><span className="source">{product.brand || hostname(active.website)}</span><h3>{product.name}</h3><div className="product-meta"><strong>{product.price || "Price unavailable"}</strong>{product.rating && <span>★ {product.rating}</span>}</div>
-          {product.product_url && <a href={product.product_url} target="_blank" rel="noreferrer">View product <ExternalLink size={14}/></a>}</div>
-        </article>)}</div>}
-      </section>}
-    </main>
-    <footer><span>DealScope</span><p>Research responsibly. Store availability and prices may change.</p></footer>
+  return <div className="auth-page">
+    <section className="auth-story"><a className="brand" href="#"><span><Sparkles size={19}/></span>DealSense</a><div className="story-copy"><div className="kicker">SMARTER SHOPPING STARTS HERE</div><h1>Every store.<br/><em>One clear price.</em></h1><p>Search once and compare live product prices across every trusted store selected by your administrator.</p><div className="story-points"><span><Check/>Automatic multi-store search</span><span><Check/>Clean side-by-side comparison</span><span><Check/>Secure personal search history</span></div></div><div className="story-foot">PRICE INTELLIGENCE · BUILT FOR BETTER DECISIONS</div></section>
+    <section className="auth-panel"><div className="auth-card"><div className="mobile-brand"><Sparkles/> DealSense</div><div className="auth-icon">{mode === "login" ? <ShieldCheck/> : <UserPlus/>}</div><h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2><p>{mode === "login" ? "Sign in to open your price dashboard." : "Start comparing products across trusted stores."}</p><form onSubmit={submit}>{mode === "signup" && <label>Full name<input autoComplete="name" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="Your name" required/></label>}<label>Email address<input type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" required/></label><label>Password<input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 8 characters" required minLength="8"/></label>{error && <div className="alert">{error}</div>}<button className="primary wide" disabled={loading}>{loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}<ArrowRight size={18}/></button></form><div className="switch-auth">{mode === "login" ? "New to DealSense?" : "Already have an account?"}<button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}>{mode === "login" ? "Create account" : "Sign in"}</button></div>{mode === "login" && <div className="admin-hint"><strong>Administrator</strong><span>admin@gmail.com · Password123</span></div>}</div></section>
   </div>;
 }
 
+function Sidebar({ user, view, setView, logout, mobile, close }) {
+  const items = user.role === "admin" ? [["admin", LayoutDashboard, "Overview"], ["sites", Globe2, "Websites"], ["errors", AlertTriangle, "Search errors"]] : [["dashboard", LayoutDashboard, "Dashboard"], ["history", BarChart3, "Search history"]];
+  return <aside className={`sidebar ${mobile ? "mobile-open" : ""}`}><div><div className="side-brand"><span><Sparkles size={18}/></span>DealSense<button onClick={close}><X/></button></div><div className="nav-label">{user.role === "admin" ? "Administration" : "Workspace"}</div><nav>{items.map(([key, Icon, label]) => <button key={key} className={view === key ? "active" : ""} onClick={() => { setView(key); close(); }}><Icon size={19}/>{label}<ChevronRight size={15}/></button>)}</nav></div><div className="side-user"><div className="avatar">{user.username.charAt(0).toUpperCase()}</div><div><strong>{user.username}</strong><span>{user.role === "admin" ? "Administrator" : user.email}</span></div><button title="Sign out" onClick={logout}><LogOut size={17}/></button></div></aside>;
+}
+
+function ResultCard({ product, best }) { return <article className={`result-card ${best ? "best" : ""}`}>{best && <div className="best-badge"><Sparkles size={13}/> Best price</div>}<div className="result-image">{product.image_url ? <img src={product.image_url} alt=""/> : <ShoppingBag/>}</div><div className="store-line"><span>{product.website}</span>{product.availability && <small>{product.availability}</small>}</div><h3>{product.name}</h3><div className="price-row"><strong>{product.price || "Price unavailable"}</strong>{product.original_price && <del>{product.original_price}</del>}</div><div className="card-bottom">{product.rating ? <span className="rating">★ {product.rating}</span> : <span/>}{product.product_url && <a href={product.product_url} target="_blank" rel="noreferrer">View deal <ExternalLink size={14}/></a>}</div></article>; }
+function Results({ active }) { return <section className="results"><div className="section-title"><div><span>PRICE COMPARISON</span><h2>{active.query}</h2></div><small>{active.results?.length || 0} offers</small></div>{active.results?.length ? <div className="result-grid">{active.results.map((product, index) => <ResultCard key={`${product.product_url}-${index}`} product={product} best={index === 0}/>)}</div> : <div className="empty"><Search/><h3>No matching products found</h3><p>Try a more specific product name or model.</p></div>}</section>; }
+function History({ searches, open }) { return searches.length ? <div className="history-list">{searches.map((item) => <button key={item.id} onClick={() => open(item.id)}><div className="history-symbol"><Search/></div><div><strong>{item.query}</strong><span>{new Date(`${item.createdAt}Z`).toLocaleString()}</span></div><small>{item.resultCount} offers</small><ChevronRight/></button>)}</div> : <div className="empty"><Search/><h3>No searches yet</h3><p>Your completed comparisons will appear here.</p></div>; }
+function Stat({ icon: Icon, label, value }) { return <div className="stat"><span><Icon/></span><div><small>{label}</small><strong>{value}</strong></div></div>; }
+function Heading({ kicker, title, text }) { return <div className="page-heading"><div className="kicker">{kicker}</div><h1>{title}</h1><p>{text}</p></div>; }
+function Page({ children }) { return <main className="page">{children}</main>; }
+
+function UserDashboard({ user, view }) {
+  const [query, setQuery] = useState(""), [searches, setSearches] = useState([]), [active, setActive] = useState(null), [sites, setSites] = useState([]), [loading, setLoading] = useState(false), [error, setError] = useState("");
+  const load = () => Promise.all([request("/searches"), request("/websites")]).then(([history, stores]) => { setSearches(history); setSites(stores.filter((site) => site.active)); });
+  useEffect(() => { load().catch((err) => setError(err.message)); }, []);
+  async function search(event) { event.preventDefault(); setLoading(true); setError(""); setActive(null); try { const data = await request("/searches", { method: "POST", body: JSON.stringify({ query }) }); setActive(data); await load(); } catch (err) { setError(err.message); } finally { setLoading(false); } }
+  async function openHistory(id) { try { setActive(await request(`/searches/${id}`)); } catch (err) { setError(err.message); } }
+  const offers = useMemo(() => active?.results?.filter((p) => p.price).length || 0, [active]);
+  if (view === "history") return <Page><Heading kicker="YOUR ACTIVITY" title="Search history" text="Reopen previous comparisons and see how many offers were found."/><History searches={searches} open={openHistory}/>{active && <Results active={active}/>}</Page>;
+  return <Page><div className="welcome"><div><div className="kicker">LIVE PRICE RADAR</div><h1>Good to see you, {user.username.split(" ")[0]}.</h1><p>Search one product. We’ll check every active store and line up the prices for you.</p></div><div className="radar"><span></span>{sites.length} stores active</div></div><form className="search-box" onSubmit={search}><Search/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a product — e.g. Sony WH-1000XM5" required/><button className="primary" disabled={loading}>{loading ? "Comparing stores…" : "Compare prices"}<ArrowRight size={18}/></button></form><div className="store-strip"><span>Searching across</span>{sites.length ? sites.map((site) => <div key={site.id}><Globe2 size={14}/>{site.name}</div>) : <p>No stores have been added yet.</p>}</div>{error && <div className="alert page-alert">{error}</div>}{loading && <div className="loading-state"><div className="loader"></div><h3>Scanning {sites.length} stores</h3><p>This can take a few minutes while live pages are checked.</p></div>}{active && !loading && <><div className="stat-grid"><Stat icon={Store} label="Stores checked" value={sites.length}/><Stat icon={ShoppingBag} label="Offers found" value={offers}/><Stat icon={Sparkles} label="Best match" value={active.results?.[0]?.price || "—"}/></div><Results active={active}/></>}{!active && !loading && <section className="recent"><div className="section-title"><div><span>RECENT COMPARISONS</span><h2>Your latest searches</h2></div><small>{searches.length} saved</small></div><History searches={searches.slice(0, 5)} open={openHistory}/></section>}</Page>;
+}
+
+function AdminDashboard({ view }) {
+  const [sites, setSites] = useState([]), [errors, setErrors] = useState([]), [stats, setStats] = useState({ users: 0, websites: 0, activeWebsites: 0, searches: 0, products: 0 }), [url, setUrl] = useState(""), [error, setError] = useState(""), [loading, setLoading] = useState(false);
+  const load = () => Promise.all([request("/websites"), request("/admin/stats"), request("/admin/errors")]).then(([s, n, e]) => { setSites(s); setStats(n); setErrors(e); });
+  useEffect(() => { load().catch((err) => setError(err.message)); }, []);
+  async function add(event) { event.preventDefault(); setLoading(true); setError(""); try { await request("/websites", { method: "POST", body: JSON.stringify({ url }) }); setUrl(""); await load(); } catch (err) { setError(err.message); } finally { setLoading(false); } }
+  async function toggle(site) { await request(`/websites/${site.id}`, { method: "PATCH", body: JSON.stringify({ active: !site.active }) }); await load(); }
+  async function remove(id) { await request(`/websites/${id}`, { method: "DELETE" }); await load(); }
+  if (view === "errors") return <Page><Heading kicker="ADMIN CONTROL CENTER" title="Search errors" text="Store failures are private to administrators and include the affected user and search."/><div className="admin-stats"><Stat icon={Users} label="Registered users" value={stats.users}/><Stat icon={Globe2} label="Active websites" value={stats.activeWebsites}/><Stat icon={ShoppingBag} label="Tracked products" value={stats.products}/><Stat icon={Search} label="Total searches" value={stats.searches}/></div><section className="admin-card"><div className="section-title"><div><span>PRIVATE ERROR LOG</span><h2>Store search failures</h2></div><small>{errors.length} recent</small></div>{errors.length ? <div className="error-table">{errors.map((item) => <article key={item.id}><div><strong>{item.website}</strong><span>{item.query}</span></div><div><strong>{item.username}</strong><span>{item.email}</span></div><p>{item.error}</p><time>{new Date(`${item.occurredAt}Z`).toLocaleString()}</time></article>)}</div> : <div className="empty compact"><Check/><h3>No store errors</h3><p>Recent searches completed without recorded store failures.</p></div>}</section></Page>;
+  return <Page><Heading kicker="ADMIN CONTROL CENTER" title={view === "sites" ? "Manage websites" : "Platform overview"} text={view === "sites" ? "Choose which ecommerce stores are searched automatically for every user." : "Monitor the accounts, stores, and comparisons running through DealSense."}/><div className="admin-stats"><Stat icon={Users} label="Registered users" value={stats.users}/><Stat icon={Globe2} label="Websites" value={stats.websites}/><Stat icon={Check} label="Active stores" value={stats.activeWebsites}/><Stat icon={Search} label="Total searches" value={stats.searches}/></div><section className="admin-card"><div className="section-title"><div><span>STORE NETWORK</span><h2>Shopping websites</h2></div><small>{stats.activeWebsites} active</small></div><form className="add-site" onSubmit={add}><Globe2/><input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="example.com or example.in" required/><button className="primary" disabled={loading}><Plus/> {loading ? "Adding…" : "Add website"}</button></form>{error && <div className="alert page-alert">{error}</div>}<div className="site-table"><div className="table-head"><span>Website</span><span>Status</span><span>Added</span><span></span></div>{sites.map((site) => <div className="site-row" key={site.id}><div className="site-name"><span>{site.name.charAt(0).toUpperCase()}</span><div><strong>{site.name}</strong><small>{site.url}</small></div></div><button className={`toggle ${site.active ? "on" : ""}`} onClick={() => toggle(site)}><i></i>{site.active ? "Active" : "Paused"}</button><time>{new Date(`${site.created_at}Z`).toLocaleDateString()}</time><button className="delete" onClick={() => remove(site.id)} title="Delete website"><Trash2/></button></div>)}</div>{!sites.length && <div className="empty compact"><Globe2/><h3>Add your first store</h3><p>Users need at least one active website before they can compare prices.</p></div>}</section></Page>;
+}
+
+function App() {
+  const [user, setUser] = useState(null), [checking, setChecking] = useState(true), [view, setView] = useState("dashboard"), [mobile, setMobile] = useState(false);
+  useEffect(() => { if (!localStorage.getItem("dealsense_token")) return setChecking(false); request("/auth/me").then((data) => { setUser(data.user); setView(data.user.role === "admin" ? "admin" : "dashboard"); }).catch(() => localStorage.removeItem("dealsense_token")).finally(() => setChecking(false)); }, []);
+  function onAuth(next) { setUser(next); setView(next.role === "admin" ? "admin" : "dashboard"); }
+  function logout() { localStorage.removeItem("dealsense_token"); setUser(null); }
+  if (checking) return <div className="boot"><Sparkles/><span>DealSense</span></div>;
+  if (!user) return <Auth onAuth={onAuth}/>;
+  return <div className="app-shell"><Sidebar user={user} view={view} setView={setView} logout={logout} mobile={mobile} close={() => setMobile(false)}/><div className="content"><header className="topbar"><button className="menu" onClick={() => setMobile(true)}><Menu/></button><div><strong>{user.role === "admin" ? "Admin dashboard" : "Price dashboard"}</strong><span>{user.role === "admin" ? "Manage your comparison network" : "Live deals across your trusted stores"}</span></div><div className="top-user"><span>{user.email}</span><div>{user.username.charAt(0).toUpperCase()}</div></div></header>{user.role === "admin" ? <AdminDashboard view={view}/> : <UserDashboard user={user} view={view}/>}</div></div>;
+}
 export default App;
