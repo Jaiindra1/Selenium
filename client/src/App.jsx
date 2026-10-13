@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, BarChart3, Check, ChevronRight, ExternalLink, Globe2, LayoutDashboard, LogOut, Menu, Plus, Search, ShieldCheck, ShoppingBag, Sparkles, Store, Trash2, UserPlus, Users, X } from "lucide-react";
 
+const API_BASE = String(import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 async function request(path, options = {}) {
   const token = localStorage.getItem("dealsense_token");
-  const response = await fetch(`/api${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } });
+  const response = await fetch(`${API_BASE}/api${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } });
   const data = response.status === 204 ? null : await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data?.error || "Something went wrong");
   return data;

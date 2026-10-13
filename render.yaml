@@ -9,8 +9,18 @@ services:
         value: /var/data
       - key: REPORT_DIR
         value: /var/data/reports
+      - key: DATABASE_PATH
+        value: /var/data/database.db
+      - key: PYTHON_BIN
+        value: /usr/bin/python3
+      - key: CHROME_BIN
+        value: /usr/bin/chromium
       - key: HEADLESS
         value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
     disk:
       name: dealscope-data
       mountPath: /var/data

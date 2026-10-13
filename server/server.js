@@ -12,13 +12,29 @@ const path = require("node:path");
 
 const app = express();
 const root = path.resolve(__dirname, "..");
-const dbPath = path.join(__dirname, "database.db");
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "database.db");
 const reportDir = process.env.REPORT_DIR || path.join(root, "data", "reports");
 const jwtSecret = process.env.JWT_SECRET || "dealsense-local-development-secret-change-in-production";
 let db;
 
 fs.mkdirSync(reportDir, { recursive: true });
 app.use(express.json({ limit: "32kb" }));
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  ...String(process.env.FRONTEND_URL || "").split(",").map((value) => value.trim()).filter(Boolean),
+]);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+  }
+  if (req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
 
 function normalizeSite(value) {
   const raw = String(value || "").trim().toLowerCase();
@@ -54,7 +70,10 @@ function auth(requiredRole) {
 }
 
 function runScraper(website, query) {
-  const executable = process.env.PYTHON_BIN || (process.platform === "win32" ? "py" : "python3");
+  const venvPython = process.platform === "win32"
+    ? path.join(root, ".venv", "Scripts", "python.exe")
+    : path.join(root, ".venv", "bin", "python");
+  const executable = process.env.PYTHON_BIN || (fs.existsSync(venvPython) ? venvPython : (process.platform === "win32" ? "py" : "python3"));
   return new Promise((resolve, reject) => {
     const child = spawn(executable, [path.join(root, "api_scrape.py"), website, query], { cwd: root, env: { ...process.env, HEADLESS: "true", REPORT_DIR: reportDir, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" }, windowsHide: true });
     let stdout = "", stderr = "";
@@ -99,6 +118,7 @@ async function storeProducts(site, searchId, products) {
 }
 
 async function initializeDBAndServer() {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   db = await open({ filename: dbPath, driver: sqlite3.Database });
   await db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   await db.exec(`CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);

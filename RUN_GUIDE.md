@@ -109,6 +109,36 @@ Open:
 http://localhost:3000
 ```
 
+## Deploy frontend on Vercel and backend on Render
+
+### Render backend and Python
+
+Create the Render service from the repository root using `render.yaml`. The Docker service contains Node.js, Python, Chromium, ChromeDriver, Selenium, and the persistent SQLite disk.
+
+Set this Render environment variable after the Vercel project has a URL:
+
+```text
+FRONTEND_URL=https://your-project.vercel.app
+```
+
+Render automatically configures `DATABASE_PATH`, `REPORT_DIR`, `PYTHON_BIN`, `CHROME_BIN`, `HEADLESS`, and a generated `JWT_SECRET` from `render.yaml`.
+
+### Vercel frontend
+
+Import the same GitHub repository into Vercel and set the project Root Directory to:
+
+```text
+client
+```
+
+Add this Vercel environment variable for Production, Preview, and Development as needed:
+
+```text
+VITE_API_URL=https://your-render-service.onrender.com
+```
+
+Do not include `/api` at the end. Redeploy Vercel after changing `VITE_API_URL`, because Vite embeds it during the build.
+
 In production mode, Express serves the compiled React files from `client/dist` and handles all `/api` requests.
 
 ## Run only the Python command-line scraper

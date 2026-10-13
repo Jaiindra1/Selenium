@@ -10,7 +10,7 @@ RUN npm run build -w client
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production HEADLESS=true PYTHONUNBUFFERED=1 DATA_DIR=/var/data REPORT_DIR=/var/data/reports
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium python3 python3-pip fonts-dejavu-core \
+    chromium chromium-driver python3 python3-pip fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package*.json ./

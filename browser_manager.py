@@ -1,5 +1,7 @@
 """Create and configure the Selenium Chrome browser."""
 
+import os
+
 from pathlib import Path
 from typing import Optional
 
@@ -31,6 +33,9 @@ def create_driver(
 
     # Configure Chrome without reusing the user's everyday browser profile.
     options = webdriver.ChromeOptions()
+    chrome_binary = os.getenv("CHROME_BIN")
+    if chrome_binary:
+        options.binary_location = chrome_binary
     options.add_argument(f"--user-data-dir={selected_profile}")
     options.add_argument("--disable-notifications")
     options.add_argument("--start-maximized")

@@ -9,3 +9,5 @@ data/
 *.db-wal
 .env
 .env.*
+!.env.example
+!client/.env.example
