@@ -1,4 +1,43 @@
-# Modular E-commerce Product Scraper
+# DealScope — E-commerce Product Research
+
+DealScope is a full-stack web application for running product research against public e-commerce pages. It combines a React dashboard, a Node.js/Express API, SQLite search history, the existing Python/Selenium extraction engine, and downloadable PDF reports.
+
+## Web application
+
+### Stack
+
+- React 19 and Vite frontend
+- Node.js and Express API
+- SQLite database (`better-sqlite3`)
+- Python, Selenium, Beautiful Soup, and ReportLab scraping/report engine
+- Docker deployment with headless Chromium
+
+### Run locally
+
+Install Node.js 22+, Python 3.10+, Google Chrome, and the Python requirements. Then run:
+
+```bash
+python -m pip install -r requirements.txt
+npm install
+npm run build
+npm start
+```
+
+Open `http://localhost:3000`. For frontend hot reload during development, run `npm run dev` and open the Vite URL printed in the terminal.
+
+Runtime data is saved under `data/` by default. Set `DATA_DIR`, `REPORT_DIR`, `PYTHON_BIN`, or `PORT` to override the defaults.
+
+### Deploy on Render
+
+The included `Dockerfile` installs Chromium and both application runtimes. The included `render.yaml` creates a Docker web service and a persistent disk for SQLite and PDF reports.
+
+1. Push the repository to GitHub.
+2. In Render, create a new Blueprint and select the repository.
+3. Apply `render.yaml` and wait for the health check at `/api/health` to pass.
+
+The configured persistent disk requires a paid Render instance. For a temporary demonstration you can remove the `disk` section, but search history and reports will disappear whenever the service restarts or redeploys.
+
+## Original command-line scraper
 
 This project opens a persistent Chrome profile, accepts a store URL and a product query, extracts product information from the rendered results page, prints a Python list of dictionaries, and downloads a timestamped PDF report to your Downloads folder.
 

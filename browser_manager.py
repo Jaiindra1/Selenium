@@ -34,10 +34,13 @@ def create_driver(
     options.add_argument(f"--user-data-dir={selected_profile}")
     options.add_argument("--disable-notifications")
     options.add_argument("--start-maximized")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-sandbox")
 
     # Headless mode is optional and disabled by default for manual intervention.
     if selected_headless:
         options.add_argument("--headless=new")
+        options.add_argument("--window-size=1440,1200")
 
     # Launch Chrome and set a maximum navigation wait to avoid hanging forever.
     driver = webdriver.Chrome(options=options)

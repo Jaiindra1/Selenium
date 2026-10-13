@@ -4,6 +4,7 @@ Keep paths, timeouts, and limits here so that they can be changed without
 editing the scraping or PDF-reporting modules.
 """
 
+import os
 from pathlib import Path
 
 # Resolve the project directory from this file, not from the shell's working directory.
@@ -11,10 +12,12 @@ PROJECT_DIR = Path(__file__).resolve().parent
 
 # Use a dedicated persistent Chrome profile so cookies/session state can persist.
 # Do not point this at your everyday Chrome profile; Chrome can lock it while in use.
-CHROME_PROFILE_DIR = Path.home() / ".ecommerce_scraper" / "chrome_profile"
+CHROME_PROFILE_DIR = Path(
+    os.environ.get("CHROME_PROFILE_DIR", Path.home() / ".ecommerce_scraper" / "chrome_profile")
+)
 
 # Put generated product reports in the user's Downloads folder.
-DOWNLOAD_DIR = Path.home() / "Downloads"
+DOWNLOAD_DIR = Path(os.environ.get("REPORT_DIR", Path.home() / "Downloads"))
 
 # Limits the time spent waiting for a page to load or a search form to react.
 PAGE_LOAD_TIMEOUT_SECONDS = 35
@@ -26,4 +29,4 @@ MAX_PRODUCTS = 100
 
 # Leave the browser visible so the user can sign in, accept cookies, or solve a
 # verification prompt manually if a website requires it.
-HEADLESS = False
+HEADLESS = os.environ.get("HEADLESS", "false").lower() in {"1", "true", "yes"}

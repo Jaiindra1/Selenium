@@ -2,3 +2,8 @@
 __pycache__/
 *.py[cod]
 reports/
+node_modules/
+client/dist/
+data/
+.env
+.env.*

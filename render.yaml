@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: dealscope
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: REPORT_DIR
+        value: /var/data/reports
+      - key: HEADLESS
+        value: "true"
+    disk:
+      name: dealscope-data
+      mountPath: /var/data
+      sizeGB: 1
