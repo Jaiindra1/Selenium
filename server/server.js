@@ -22,7 +22,8 @@ app.use(express.json({ limit: "32kb" }));
 const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  ...String(process.env.FRONTEND_URL || "").split(",").map((value) => value.trim()).filter(Boolean),
+  "https://selenium-gamma.vercel.app",
+  ...String(process.env.FRONTEND_URL || "").split(",").map((value) => value.trim().replace(/\/$/, "")).filter(Boolean),
 ]);
 app.use((req, res, next) => {
   const origin = req.headers.origin;
